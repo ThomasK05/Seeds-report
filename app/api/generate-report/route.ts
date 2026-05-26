@@ -16,6 +16,8 @@ type RequestBody = {
   sector: string
   processes: Process[]
   painPoint: string
+  contactName?: string
+  contactEmail?: string
 }
 
 const SYSTEM_PROMPT = `Je bent een ervaren AI-automatiseringsconsultant van Hidden Harvest — een Nederlands bureau in Delft dat verborgen groei vindt in bedrijfsoperaties. Hidden Harvest analyseert handmatige processen en bouwt op maat gemaakte automatisering met AI.
@@ -324,3 +326,86 @@ INSTRUCTIE:
 
 Schrijf nu het Seeds Report voor ${body.companyName}.`
 }
+
+// ─── HTML rapport-template helpers ──────────────────────────────────────────
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function formatReportMarkdownToHtml(report: string): string {
+  return report
+    .split('\n')
+    .map((line) => {
+      if (line.startsWith('## ')) return `<h2>${escapeHtml(line.slice(3))}</h2>`
+      if (line.startsWith('### ')) return `<h3>${escapeHtml(line.slice(4))}</h3>`
+      if (line === '---') return '<hr>'
+      if (line.trim() === '') return ''
+      const escaped = escapeHtml(line)
+      const withBold = escaped.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      return `<p>${withBold}</p>`
+    })
+    .join('\n')
+}
+
+function buildReportHtml(body: RequestBody, report: string): string {
+  const co = escapeHtml(body.companyName)
+  const sector = escapeHtml(body.sector)
+  const contact = escapeHtml(body.contactName ?? '')
+  const email = escapeHtml(body.contactEmail ?? '')
+  const bodyHtml = formatReportMarkdownToHtml(report)
+
+  return `<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <title>Seeds Report · ${co}</title>
+  <style>
+    body { margin: 0; padding: 32px 16px; background: #F9F6F0; font-family: Georgia, 'Times New Roman', serif; color: #1c1917; }
+    .wrapper { max-width: 820px; margin: 0 auto; }
+    .card { background: #fff; border-radius: 12px; padding: 48px 56px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+    .brand { font-family: system-ui, sans-serif; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #2D5016; font-weight: 600; margin: 0 0 4px; }
+    .meta { font-family: system-ui, sans-serif; font-size: 13px; color: #57534e; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #e7e5e4; }
+    .meta p { margin: 2px 0; }
+    h2 { font-size: 1.2rem; color: #2D5016; font-family: system-ui, sans-serif; margin: 28px 0 6px; }
+    h3 { font-size: 1rem; font-family: system-ui, sans-serif; color: #1c1917; margin: 18px 0 4px; }
+    p { font-size: 0.9375rem; line-height: 1.7; margin: 6px 0; }
+    hr { border: none; border-top: 1px solid #e7e5e4; margin: 24px 0; }
+    strong { color: #1c1917; }
+    .footer { font-family: system-ui, sans-serif; font-size: 11px; color: #a8a29e; text-align: center; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="card">
+      <p class="brand">Hidden Harvest · Seeds Report</p>
+      <div class="meta">
+        <p><strong>${co}</strong></p>
+        <p>${sector}</p>
+        ${contact ? `<p>${contact}${email ? ` &middot; <a href="mailto:${email}" style="color:#2D5016">${email}</a>` : ''}</p>` : ''}
+      </div>
+      ${bodyHtml}
+    </div>
+    <p class="footer">Gemaakt voor Hidden Harvest &middot; Powered by Claude</p>
+  </div>
+</body>
+</html>`
+}
+
+function safeFilename(value: string): string {
+  const result = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+  return result || 'aanvraag'
+}
+
+// Suppress unused-variable warnings for helpers reserved for a future step.
+void (buildReportHtml as unknown)
+void (safeFilename as unknown)
