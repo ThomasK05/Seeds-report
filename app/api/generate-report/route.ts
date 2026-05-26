@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextResponse } from 'next/server'
+import { Resend } from 'resend'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -16,8 +17,8 @@ type RequestBody = {
   sector: string
   processes: Process[]
   painPoint: string
-  contactName?: string
-  contactEmail?: string
+  contactName: string
+  contactEmail: string
 }
 
 const SYSTEM_PROMPT = `Je bent een ervaren AI-automatiseringsconsultant van Hidden Harvest — een Nederlands bureau in Delft dat verborgen groei vindt in bedrijfsoperaties. Hidden Harvest analyseert handmatige processen en bouwt op maat gemaakte automatisering met AI.
@@ -164,7 +165,9 @@ export async function POST(req: Request) {
 
     if (isMockMode) {
       await new Promise((resolve) => setTimeout(resolve, 3000))
-      return NextResponse.json({ report: generateMockReport(body), mock: true })
+      const mockReport = generateMockReport(body)
+      await sendLeadNotification(body, mockReport)
+      return NextResponse.json({ ok: true, mock: true })
     }
 
     const userMessage = formatUserMessage(body)
@@ -184,7 +187,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Het rapport is leeg teruggekomen.' }, { status: 500 })
     }
 
-    return NextResponse.json({ report })
+    await sendLeadNotification(body, report)
+    return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('Generation error:', error)
     const message = error instanceof Error ? error.message : 'Onbekende fout bij generatie.'
@@ -406,6 +410,94 @@ function safeFilename(value: string): string {
   return result || 'aanvraag'
 }
 
-// Suppress unused-variable warnings for helpers reserved for a future step.
-void (buildReportHtml as unknown)
-void (safeFilename as unknown)
+// ─── Mail helpers ────────────────────────────────────────────────────────────
+
+function getLeadRecipients(): string[] {
+  return (process.env.LEAD_NOTIFY_TO ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+}
+
+function buildInternalEmailHtml(body: RequestBody): string {
+  const co = escapeHtml(body.companyName)
+  const sector = escapeHtml(body.sector)
+  const contact = escapeHtml(body.contactName)
+  const email = escapeHtml(body.contactEmail)
+  const painPoint = escapeHtml(body.painPoint)
+
+  const processList = body.processes
+    .map(
+      (p, i) => `
+      <tr>
+        <td style="padding:6px 8px;border-bottom:1px solid #e7e5e4;color:#57534e">${i + 1}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e7e5e4">${escapeHtml(p.description)}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e7e5e4;text-align:center">${p.hoursPerWeek}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e7e5e4;text-align:center">${p.peopleInvolved}</td>
+        <td style="padding:6px 8px;border-bottom:1px solid #e7e5e4;text-align:center">${p.hoursPerWeek * p.peopleInvolved}</td>
+      </tr>`,
+    )
+    .join('')
+
+  return `<!doctype html>
+<html lang="nl">
+<head><meta charset="utf-8"><title>Nieuwe Seeds Report aanvraag</title></head>
+<body style="margin:0;padding:32px 16px;background:#F9F6F0;font-family:system-ui,sans-serif;color:#1c1917">
+  <div style="max-width:640px;margin:0 auto;background:#fff;border-radius:12px;padding:40px 48px;box-shadow:0 1px 4px rgba(0,0,0,.08)">
+    <p style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#2D5016;font-weight:600;margin:0 0 16px">Hidden Harvest &middot; Seeds Report</p>
+    <h1 style="font-size:1.25rem;margin:0 0 24px;color:#1c1917">Nieuwe Seeds Report aanvraag</h1>
+
+    <table style="border-collapse:collapse;width:100%;margin-bottom:24px">
+      <tr><td style="padding:5px 0;color:#57534e;width:160px">Bedrijfsnaam</td><td style="padding:5px 0"><strong>${co}</strong></td></tr>
+      <tr><td style="padding:5px 0;color:#57534e">Sector</td><td style="padding:5px 0">${sector}</td></tr>
+      <tr><td style="padding:5px 0;color:#57534e">Contactpersoon</td><td style="padding:5px 0">${contact}</td></tr>
+      <tr><td style="padding:5px 0;color:#57534e">E-mailadres</td><td style="padding:5px 0"><a href="mailto:${email}" style="color:#2D5016">${email}</a></td></tr>
+    </table>
+
+    <p style="margin:0 0 8px;font-weight:600">Grootste pijnpunt</p>
+    <p style="margin:0 0 24px;line-height:1.6;color:#44403c;background:#F9F6F0;padding:12px 16px;border-radius:6px">${painPoint}</p>
+
+    <p style="margin:0 0 8px;font-weight:600">Processen</p>
+    <table style="border-collapse:collapse;width:100%;font-size:0.875rem;margin-bottom:24px">
+      <thead>
+        <tr style="background:#F9F6F0">
+          <th style="padding:6px 8px;text-align:left;color:#57534e;font-weight:600">#</th>
+          <th style="padding:6px 8px;text-align:left;color:#57534e;font-weight:600">Beschrijving</th>
+          <th style="padding:6px 8px;text-align:center;color:#57534e;font-weight:600">Uur/week</th>
+          <th style="padding:6px 8px;text-align:center;color:#57534e;font-weight:600">Mensen</th>
+          <th style="padding:6px 8px;text-align:center;color:#57534e;font-weight:600">Totaal u/w</th>
+        </tr>
+      </thead>
+      <tbody>${processList}</tbody>
+    </table>
+
+    <p style="margin:0;color:#57534e;font-size:0.875rem">Het gegenereerde Seeds Report staat als HTML-bijlage bij deze mail.</p>
+  </div>
+</body>
+</html>`
+}
+
+async function sendLeadNotification(body: RequestBody, report: string): Promise<void> {
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY ontbreekt. Voeg deze toe aan .env.local of Vercel.')
+  }
+
+  const recipients = getLeadRecipients()
+  if (recipients.length === 0) {
+    throw new Error('LEAD_NOTIFY_TO ontbreekt. Voeg minimaal één intern e-mailadres toe.')
+  }
+
+  const from = process.env.LEAD_NOTIFY_FROM ?? 'Hidden Harvest <onboarding@resend.dev>'
+  const filename = `seeds-report-${safeFilename(body.companyName)}.html`
+  const reportHtml = buildReportHtml(body, report)
+
+  const resend = new Resend(apiKey)
+  await resend.emails.send({
+    from,
+    to: recipients,
+    subject: `Nieuwe Seeds Report aanvraag: ${body.companyName}`,
+    html: buildInternalEmailHtml(body),
+    attachments: [{ filename, content: Buffer.from(reportHtml) }],
+  })
+}
