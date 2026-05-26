@@ -55,11 +55,13 @@ Analyseer het ingevulde formulier en schrijf een concreet, persoonlijk "Seeds Re
 
 ## Samenvatting
 Twee tot drie zinnen.
-- Begin met één zin die de huidige situatie schetst (bv. "[Bedrijfsnaam] besteedt nu wekelijks X uur aan drie terugkerende administratieve processen", waarbij X = de "Totale mensuren per week" uit "HUIDIGE SITUATIE").
+- Begin met één zin die de huidige situatie schetst (bv. "[Bedrijfsnaam] besteedt nu wekelijks X uur aan terugkerende administratieve processen", waarbij X = de "Totale mensuren per week" uit "HUIDIGE SITUATIE").
 - Noem dan de geschatte besparing met een voorzichtige formulering, bv. "kan naar schatting circa **[Y] uur per jaar** vrijspelen — goed voor ongeveer **[€Z]** aan personeelscapaciteit, uitgaande van €50 per uur". Y en Z komen LETTERLIJK uit de rij in de "TOTAAL PER COMBINATIE"-tabel die hoort bij je drie scenario-keuzes. Reken niets zelf uit.
 - Eindig met één concrete zin over wat dit voor het team betekent (bv. sneller reageren op klanten, minder handmatig controleren, meer tijd voor verkoop en groei).
 
-## Drie automatiseringskansen
+## Automatiseringskansen
+
+Schrijf één Kans-sectie per ingediend proces. Het aantal processen staat in de gebruikersinvoer.
 
 ### Kans 1: [Commerciële, productachtige naam — bv. "Automatische Offertemotor", "Order Intelligence Engine", "Slimme Voorraad Pilot". Vermijd droge functionele omschrijvingen als "Automatische verwerking van X".]
 **Wat er nu gebeurt:** Eén zin over het huidige proces, in de taal van de gebruiker.
@@ -71,8 +73,7 @@ Twee tot drie zinnen.
 ### Kans 2: [...]
 [zelfde structuur]
 
-### Kans 3: [...]
-[zelfde structuur]
+[Herhaal de bovenstaande structuur voor elk volgend ingediend proces]
 
 ## Aanbevolen eerste stap
 Twee korte alinea's.
@@ -91,7 +92,7 @@ Twee korte alinea's.
 - Vermijd vage termen ("aanzienlijk", "veel", "snel") — gebruik de exacte getallen.
 - **Geen jargon.** Schrijf NOOIT "mens in de loop" of "human in the loop". Gebruik in plaats daarvan formuleringen als "blijft een medewerker betrokken", "een medewerker controleert nog uitzonderingen", of "een collega keurt het concept nog goed".
 - **Voorzichtige financiële taal.** Gebruik "naar schatting circa", "kan tot circa", "ongeveer" bij geldbedragen. Schrijf niet "bespaart €X" maar "kan naar schatting circa €X vrijspelen" of "goed voor ongeveer €X aan personeelscapaciteit". Het rapport is een indicatie, geen garantie.
-- Sorteer de drie kansen op grootste ROI eerst (gebruik de "Besparing per jaar" van het gekozen scenario).
+- Sorteer de kansen op grootste ROI eerst (gebruik de "Besparing per jaar" van het gekozen scenario).
 - Schrijf de bedrijfsnaam EXACT zoals ingevuld in het formulier — wissel niet tussen schrijfwijzes (bv. niet wisselen tussen "GreenOffice" en "Greenoffice").
 - Wees voorzichtig met causaliteit. Schrijf "kan bijdragen aan" of "maakt het mogelijk om" in plaats van "betekent direct" of "leidt tot". Vermijd over-the-top sales-claims.
 - Verzin niets dat niet uit het formulier of de berekeningen afgeleid kan worden.
@@ -108,47 +109,34 @@ function generateMockReport(body: RequestBody): string {
   const totalHoursPerYear = totalHoursPerWeek * 48
   const totalEurosPerYear = totalHoursPerYear * 50
 
+  const kansSections = p
+    .map((proc, i) => {
+      const hrs = proc.hoursPerWeek * proc.peopleInvolved
+      const savingsHrsYear = hrs * 48
+      const savingsEur = savingsHrsYear * 50
+      return `### Kans ${i + 1}: Automatische verwerking van ${proc.description.split(' ').slice(0, 4).join(' ')}
+
+**Wat er nu gebeurt:** ${body.companyName} besteedt wekelijks ${hrs} mensuur aan ${proc.description.toLowerCase()}, volledig handmatig.
+
+**Hoe automatisering eruit ziet:** Een AI-agent verwerkt de input automatisch en stelt concept-resultaten op basis van vooraf ingestelde regels. Een medewerker controleert alleen uitzonderingen.
+
+**Geschatte tijdsbesparing:** ${hrs} uur/week → circa 30 minuten/week voor controle. Jaarbesparing: ${savingsHrsYear} uur = **€${savingsEur.toLocaleString('nl-NL')}**.
+
+**Type oplossing:** AI als engine`
+    })
+    .join('\n\n')
+
   return `## Samenvatting
 
-Op basis van de drie processen die ${body.companyName} heeft ingevuld, is er een geschatte besparing mogelijk van **${totalHoursPerYear} uur per jaar** — dat staat gelijk aan **€${totalEurosPerYear.toLocaleString('nl-NL')} aan personeelskosten**. De grootste kansen liggen in het automatiseren van ${p[0].description.toLowerCase()}, gevolgd door de overige twee processen.
+Op basis van de ${p.length} ${p.length === 1 ? 'proces' : 'processen'} die ${body.companyName} heeft ingevuld, is er een geschatte besparing mogelijk van **${totalHoursPerYear} uur per jaar** — dat staat gelijk aan **€${totalEurosPerYear.toLocaleString('nl-NL')} aan personeelskosten**. De grootste kansen liggen in het automatiseren van ${p[0].description.toLowerCase()}${p.length > 1 ? ', gevolgd door de overige processen' : ''}.
 
-## Drie automatiseringskansen
+## Automatiseringskansen
 
-### Kans 1: Automatische verwerking van ${p[0].description.split(' ').slice(0, 4).join(' ')}
-
-**Wat er nu gebeurt:** ${body.companyName} besteedt wekelijks ${p[0].hoursPerWeek * p[0].peopleInvolved} mensuur aan ${p[0].description.toLowerCase()}, volledig handmatig.
-
-**Hoe automatisering eruit ziet:** Een AI-agent leest binnenkomende input, classificeert de inhoud en stelt automatisch een concept-antwoord of verwerking op op basis van vooraf ingestelde regels en historische data. Een medewerker controleert alleen uitzonderingen — de overige 80-90% verloopt zonder tussenkomst.
-
-**Geschatte tijdsbesparing:** ${p[0].hoursPerWeek * p[0].peopleInvolved} uur/week → circa 30 minuten/week voor controle. Jaarbesparing: ${p[0].hoursPerWeek * p[0].peopleInvolved * 48} uur = **€${(p[0].hoursPerWeek * p[0].peopleInvolved * 48 * 50).toLocaleString('nl-NL')}**.
-
-**Type oplossing:** AI als engine
-
-**Vergelijkbaar met:** Fattorino Innamorato, waarbij Hidden Harvest een vergelijkbaar systeem bouwde voor e-commerce klantenservice: responstijd daalde van uren naar minuten.
-
-### Kans 2: Gestructureerde vervanging van ${p[1].description.split(' ').slice(0, 4).join(' ')}
-
-**Wat er nu gebeurt:** ${p[1].peopleInvolved} medewerker${p[1].peopleInvolved > 1 ? 's besteden' : ' besteedt'} ${p[1].hoursPerWeek} uur per week aan ${p[1].description.toLowerCase()}.
-
-**Hoe automatisering eruit ziet:** Een geautomatiseerd systeem koppelt de databron (bv. orders, spreadsheets of leveranciersinvoer) direct aan de uitvoer, zonder handmatige tussenstap. Wijzigingen worden in real-time doorgevoerd en zijn direct zichtbaar in een dashboard.
-
-**Geschatte tijdsbesparing:** ${p[1].hoursPerWeek * p[1].peopleInvolved} uur/week → minder dan 10 minuten controle. Jaarbesparing: ${p[1].hoursPerWeek * p[1].peopleInvolved * 48} uur = **€${(p[1].hoursPerWeek * p[1].peopleInvolved * 48 * 50).toLocaleString('nl-NL')}**.
-
-**Type oplossing:** AI als bouwer
-
-### Kans 3: Slimme automatisering van ${p[2].description.split(' ').slice(0, 4).join(' ')}
-
-**Wat er nu gebeurt:** ${p[2].description} kost ${p[2].hoursPerWeek * p[2].peopleInvolved} uur per week en is volledig handmatig, met kans op fouten en inconsistentie.
-
-**Hoe automatisering eruit ziet:** Op basis van bestaande data (orders, klantgegevens, etc.) genereert het systeem automatisch het gewenste document of de gewenste output. Eén klik ter goedkeuring is alles wat de medewerker nog hoeft te doen.
-
-**Geschatte tijdsbesparing:** ${p[2].hoursPerWeek * p[2].peopleInvolved} uur/week → één klik per item. Jaarbesparing: ${p[2].hoursPerWeek * p[2].peopleInvolved * 48} uur = **€${(p[2].hoursPerWeek * p[2].peopleInvolved * 48 * 50).toLocaleString('nl-NL')}**.
-
-**Type oplossing:** AI als engine
+${kansSections}
 
 ## Aanbevolen eerste stap
 
-De grootste en snelste winst voor ${body.companyName} zit in kans 1: het automatiseren van ${p[0].description.toLowerCase()}. Dit proces heeft de hoogste belasting (${p[0].hoursPerWeek * p[0].peopleInvolved} uur/week) en laat zich goed automatiseren met bewezen AI-technologie die Hidden Harvest al eerder heeft ingezet. Een Field Discovery-gesprek van 30 minuten is genoeg om te beoordelen hoe snel dit live kan — en wat de exacte besparing voor ${body.companyName} wordt. Plan dat gesprek via hiddenharvest.nl.
+De grootste en snelste winst voor ${body.companyName} zit in kans 1: het automatiseren van ${p[0].description.toLowerCase()}. Dit proces heeft de hoogste belasting (${p[0].hoursPerWeek * p[0].peopleInvolved} uur/week) en laat zich goed automatiseren met bewezen AI-technologie die Hidden Harvest al eerder heeft ingezet. Een Field Discovery-gesprek van 30 minuten is genoeg om te beoordelen hoe snel dit live kan. Plan dat gesprek via hiddenharvest.nl.
 
 ---
 *⚠️ Dit is een voorbeeldrapport gegenereerd in demo-modus. Voeg een ANTHROPIC_API_KEY toe aan .env.local voor een echt AI-gegenereerd rapport.*`
@@ -276,19 +264,21 @@ ${scenarioLines}`
     })
     .join('\n\n')
 
-  // Pre-compute ALL 27 combinations (3 processes × 3 scenarios each)
-  const combinationLines: string[] = []
-  for (const s1 of processMetrics[0].scenarios) {
-    for (const s2 of processMetrics[1].scenarios) {
-      for (const s3 of processMetrics[2].scenarios) {
-        const totalHrs = s1.savedHoursPerYear + s2.savedHoursPerYear + s3.savedHoursPerYear
-        const totalEur = s1.savedEurosPerYear + s2.savedEurosPerYear + s3.savedEurosPerYear
-        combinationLines.push(
-          `  ${s1.letter}-${s2.letter}-${s3.letter}: ${fmtHrs(totalHrs)} uur/jaar = ${fmtEur(totalEur)}`,
-        )
-      }
-    }
+  // Pre-compute all 3^N combinations for N processes
+  type ScenarioEntry = { letter: string; savedHoursPerYear: number; savedEurosPerYear: number }
+  function allCombinations(arrays: ScenarioEntry[][]): ScenarioEntry[][] {
+    if (arrays.length === 0) return [[]]
+    const [first, ...rest] = arrays
+    const restCombos = allCombinations(rest)
+    return first.flatMap((item) => restCombos.map((combo) => [item, ...combo]))
   }
+  const combinations = allCombinations(processMetrics.map((pm) => pm.scenarios))
+  const combinationLines = combinations.map((combo) => {
+    const totalHrs = combo.reduce((sum, s) => sum + s.savedHoursPerYear, 0)
+    const totalEur = combo.reduce((sum, s) => sum + s.savedEurosPerYear, 0)
+    const label = combo.map((s) => s.letter).join('-')
+    return `  ${label}: ${fmtHrs(totalHrs)} uur/jaar = ${fmtEur(totalEur)}`
+  })
 
   const grandTotalHoursPerYear = grandTotalHoursPerWeek * WEEKS_PER_YEAR
 
@@ -311,11 +301,11 @@ HUIDIGE SITUATIE (alle drie processen samen, vóór automatisering):
   - Huidige personeelskosten per jaar: ${fmtEur(grandTotalCostPerYear)}
 
 TOTAAL PER COMBINATIE (kies één rij voor de Samenvatting,
-op basis van je drie scenario-keuzes hierboven):
+op basis van je ${body.processes.length} scenario-keuzes hierboven):
 ${combinationLines.join('\n')}
 
-Voorbeeld: kies je voor proces 1 = B, proces 2 = A, proces 3 = B,
-dan zoek je de rij "B-A-B" op en gebruik je die twee getallen
+Voorbeeld: kies je voor ${body.processes.map((_, i) => `proces ${i + 1} = B`).join(', ')},
+dan zoek je de rij "${Array(body.processes.length).fill('B').join('-')}" op en gebruik je die twee getallen
 letterlijk in de Samenvatting.
 ───────────────────────────────────────────────────────────────
 
@@ -328,7 +318,7 @@ INSTRUCTIE:
 3. Voor de Samenvatting: zoek je combinatie (bv. "B-A-B") op in de tabel "TOTAAL PER COMBINATIE" en gebruik die twee getallen letterlijk. Tel NOOIT zelf op.
 4. Reken zelf niets uit — alleen overschrijven.
 
-Schrijf nu het Seeds Report voor ${body.companyName}.`
+Schrijf nu het Seeds Report voor ${body.companyName} met ${body.processes.length} ${body.processes.length === 1 ? 'automatiseringskans' : 'automatiseringskansen'}.`
 }
 
 // ─── HTML rapport-template helpers ──────────────────────────────────────────

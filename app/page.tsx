@@ -35,7 +35,7 @@ const INITIAL_STATE: FormData = {
   contactName: '',
   contactEmail: '',
   sector: '',
-  processes: [{ ...EMPTY_PROCESS }, { ...EMPTY_PROCESS }, { ...EMPTY_PROCESS }],
+  processes: [{ ...EMPTY_PROCESS }],
   painPoint: '',
 }
 
@@ -85,6 +85,14 @@ export default function Home() {
     setFormData({ ...formData, processes: newProcesses })
   }
 
+  const addProcess = () => {
+    setFormData({ ...formData, processes: [...formData.processes, { ...EMPTY_PROCESS }] })
+  }
+
+  const removeProcess = (index: number) => {
+    setFormData({ ...formData, processes: formData.processes.filter((_, i) => i !== index) })
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -126,13 +134,9 @@ export default function Home() {
             <h1 className="text-3xl md:text-4xl font-bold text-stone-900 mb-6">
               Bedankt voor uw aanvraag
             </h1>
-            <p className="text-stone-600 leading-relaxed max-w-md mx-auto mb-4">
+            <p className="text-stone-600 leading-relaxed max-w-md mx-auto mb-8">
               We hebben uw gegevens goed ontvangen. Hidden Harvest bekijkt uw processen en komt zo
               spoedig mogelijk bij u terug met een persoonlijk Seeds Report.
-            </p>
-            <p className="text-stone-500 text-sm leading-relaxed max-w-md mx-auto mb-8">
-              Het rapport wordt eerst handmatig gecontroleerd, zodat u geen standaardvoorbeeld
-              ontvangt maar een rapport dat beter aansluit op uw bedrijf.
             </p>
             <button
               type="button"
@@ -234,11 +238,22 @@ export default function Home() {
 
           <div className="space-y-4">
             <p className="text-sm font-medium text-stone-700">
-              Drie processen die nu veel tijd kosten
+              Processen die nu veel tijd kosten
             </p>
-            {[0, 1, 2].map((i) => (
+            {formData.processes.map((_, i) => (
               <div key={i} className="border border-stone-200 rounded-md p-4 bg-stone-50/50">
-                <p className="font-semibold text-stone-800 mb-3 text-sm">Proces {i + 1}</p>
+                <div className="flex justify-between items-center mb-3">
+                  <p className="font-semibold text-stone-800 text-sm">Proces {i + 1}</p>
+                  {formData.processes.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeProcess(i)}
+                      className="text-xs text-stone-400 hover:text-red-500 transition"
+                    >
+                      Verwijderen
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs text-stone-600 mb-1">
@@ -284,6 +299,13 @@ export default function Home() {
                 </div>
               </div>
             ))}
+            <button
+              type="button"
+              onClick={addProcess}
+              className="w-full py-2.5 border border-dashed border-stone-300 rounded-md text-stone-500 text-sm hover:border-harvest-green hover:text-harvest-green transition"
+            >
+              + Proces toevoegen
+            </button>
           </div>
 
           <div>
