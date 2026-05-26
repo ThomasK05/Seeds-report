@@ -170,13 +170,8 @@ export async function POST(req: Request) {
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2000,
-      system: [
-        {
-          type: 'text',
-          text: SYSTEM_PROMPT,
-          cache_control: { type: 'ephemeral' },
-        },
-      ],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }] as any,
       messages: [{ role: 'user', content: userMessage }],
     })
 
