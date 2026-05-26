@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, FormEvent, ReactNode } from 'react'
+import { useState, FormEvent } from 'react'
 
 type Process = {
   description: string
@@ -76,7 +76,7 @@ export default function Home() {
   const [formData, setFormData] = useState<FormData>(INITIAL_STATE)
   const [loading, setLoading] = useState(false)
   const [loadingStep, setLoadingStep] = useState(0)
-  const [report, setReport] = useState<string | null>(null)
+  const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const updateProcess = (index: number, field: keyof Process, value: string | number) => {
@@ -90,7 +90,6 @@ export default function Home() {
     setLoading(true)
     setLoadingStep(0)
     setError(null)
-    setReport(null)
 
     const interval = setInterval(() => {
       setLoadingStep((prev) => Math.min(prev + 1, LOADING_STEPS.length - 1))
@@ -106,8 +105,8 @@ export default function Home() {
         const data = await res.json().catch(() => ({}))
         throw new Error(data.error || 'Er ging iets mis bij het genereren.')
       }
-      const data = await res.json()
-      setReport(data.report)
+      await res.json()
+      setSubmitted(true)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Onbekende fout')
     } finally {
@@ -116,17 +115,38 @@ export default function Home() {
     }
   }
 
-  if (report) {
+  if (submitted) {
     return (
-      <ReportView
-        report={report}
-        formData={formData}
-        onReset={() => {
-          setReport(null)
-          setError(null)
-          setFormData(INITIAL_STATE)
-        }}
-      />
+      <main className="min-h-screen py-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-xl shadow-sm border border-stone-200 p-8 md:p-12 text-center">
+            <p className="text-sm uppercase tracking-widest text-harvest-green font-semibold mb-6">
+              Hidden Harvest
+            </p>
+            <h1 className="text-3xl md:text-4xl font-bold text-stone-900 mb-6">
+              Bedankt voor uw aanvraag
+            </h1>
+            <p className="text-stone-600 leading-relaxed max-w-md mx-auto mb-8">
+              We hebben uw gegevens goed ontvangen. Hidden Harvest bekijkt uw processen en komt zo
+              spoedig mogelijk bij u terug met een persoonlijk Seeds Report.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSubmitted(false)
+                setError(null)
+                setFormData(INITIAL_STATE)
+              }}
+              className="px-6 py-3 bg-harvest-green text-white font-semibold rounded-md hover:bg-green-900 transition"
+            >
+              Nieuwe aanvraag
+            </button>
+          </div>
+          <p className="text-center text-xs text-stone-500 mt-6">
+            Gemaakt voor Hidden Harvest · Powered by Claude
+          </p>
+        </div>
+      </main>
     )
   }
 
@@ -313,117 +333,4 @@ export default function Home() {
       </div>
     </main>
   )
-}
-
-function ReportView({
-  report,
-  formData,
-  onReset,
-}: {
-  report: string
-  formData: FormData
-  onReset: () => void
-}) {
-  const [copied, setCopied] = useState(false)
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(report)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  return (
-    <main className="min-h-screen py-12 px-4 print:py-0 print:px-0">
-      <div className="max-w-3xl mx-auto">
-        <article className="bg-white rounded-xl shadow-sm border border-stone-200 p-8 md:p-12 print:shadow-none print:border-0 print:rounded-none">
-          <header className="mb-8 pb-6 border-b border-stone-200">
-            <p className="text-xs uppercase tracking-widest text-harvest-green font-semibold mb-2 print:text-black">
-              Hidden Harvest · Seeds Report
-            </p>
-            <h1 className="text-3xl md:text-4xl font-bold text-stone-900">
-              {formData.companyName}
-            </h1>
-            <p className="text-stone-500 mt-1">{formData.sector}</p>
-          </header>
-
-          <FormattedReport text={report} />
-
-          <footer className="mt-12 pt-6 border-t border-stone-200 flex flex-wrap gap-3 print:hidden">
-            <button
-              onClick={onReset}
-              className="px-4 py-2.5 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200 transition text-sm"
-            >
-              ← Nieuw rapport
-            </button>
-            <button
-              onClick={handleCopy}
-              className="px-4 py-2.5 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200 transition text-sm"
-            >
-              {copied ? '✓ Gekopieerd' : 'Kopieer tekst'}
-            </button>
-            <button
-              onClick={() => window.print()}
-              className="px-4 py-2.5 bg-stone-100 text-stone-700 rounded-md hover:bg-stone-200 transition text-sm"
-            >
-              Opslaan als PDF
-            </button>
-            <a
-              href="https://hiddenharvest.nl/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-4 py-2.5 bg-harvest-green text-white rounded-md hover:bg-green-900 transition text-sm font-medium ml-auto"
-            >
-              Plan een Field Discovery →
-            </a>
-          </footer>
-        </article>
-      </div>
-    </main>
-  )
-}
-
-function FormattedReport({ text }: { text: string }) {
-  const lines = text.split('\n')
-  return (
-    <div className="space-y-3 text-stone-800 leading-relaxed">
-      {lines.map((line, i) => {
-        if (line.startsWith('## ')) {
-          return (
-            <h2 key={i} className="text-2xl font-bold text-stone-900 mt-8 mb-2 first:mt-0">
-              {line.slice(3)}
-            </h2>
-          )
-        }
-        if (line.startsWith('### ')) {
-          return (
-            <h3 key={i} className="text-lg font-semibold text-harvest-green mt-6 mb-1">
-              {line.slice(4)}
-            </h3>
-          )
-        }
-        if (line.trim() === '') {
-          return <div key={i} className="h-1" />
-        }
-        return (
-          <p key={i} className="text-stone-700 text-sm md:text-base">
-            {renderInlineBold(line)}
-          </p>
-        )
-      })}
-    </div>
-  )
-}
-
-function renderInlineBold(text: string): ReactNode {
-  const parts = text.split(/(\*\*[^*]+\*\*)/g)
-  return parts.map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return (
-        <strong key={i} className="font-semibold text-stone-900">
-          {part.slice(2, -2)}
-        </strong>
-      )
-    }
-    return <span key={i}>{part}</span>
-  })
 }
