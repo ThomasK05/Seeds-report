@@ -10,6 +10,8 @@ type Process = {
 
 type FormData = {
   companyName: string
+  contactName: string
+  contactEmail: string
   sector: string
   processes: Process[]
   painPoint: string
@@ -30,6 +32,8 @@ const EMPTY_PROCESS: Process = { description: '', hoursPerWeek: 0, peopleInvolve
 
 const INITIAL_STATE: FormData = {
   companyName: '',
+  contactName: '',
+  contactEmail: '',
   sector: '',
   processes: [{ ...EMPTY_PROCESS }, { ...EMPTY_PROCESS }, { ...EMPTY_PROCESS }],
   painPoint: '',
@@ -37,6 +41,8 @@ const INITIAL_STATE: FormData = {
 
 const DEMO_DATA: FormData = {
   companyName: 'FreshMeals BV',
+  contactName: 'Sanne de Vries',
+  contactEmail: 'sanne@freshmeals.example',
   sector: 'E-commerce',
   processes: [
     {
@@ -158,6 +164,30 @@ export default function Home() {
               onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
               className="w-full px-3 py-2.5 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-harvest-green focus:border-transparent transition"
               placeholder="bv. FreshMeals BV"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">Naam contactpersoon</label>
+            <input
+              type="text"
+              required
+              value={formData.contactName}
+              onChange={(e) => setFormData({ ...formData, contactName: e.target.value })}
+              className="w-full px-3 py-2.5 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-harvest-green focus:border-transparent transition"
+              placeholder="bv. Sanne de Vries"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">E-mailadres</label>
+            <input
+              type="email"
+              required
+              value={formData.contactEmail}
+              onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
+              className="w-full px-3 py-2.5 border border-stone-300 rounded-md focus:outline-none focus:ring-2 focus:ring-harvest-green focus:border-transparent transition"
+              placeholder="bv. sanne@bedrijf.nl"
             />
           </div>
 
