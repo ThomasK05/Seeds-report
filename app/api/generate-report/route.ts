@@ -486,7 +486,7 @@ async function sendLeadNotification(body: RequestBody, report: string): Promise<
   await resend.emails.send({
     from,
     to: recipients,
-    subject: `Nieuwe Seeds Report aanvraag: ${body.companyName}`,
+    subject: `Nieuwe Seeds Report aanvraag: ${body.companyName} — ${new Date().toLocaleString('nl-NL', { dateStyle: 'short', timeStyle: 'short' })}`,
     html: buildInternalEmailHtml(body),
     attachments: [{ filename, content: Buffer.from(reportHtml) }],
   })
