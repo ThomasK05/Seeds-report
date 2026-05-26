@@ -126,9 +126,13 @@ export default function Home() {
             <h1 className="text-3xl md:text-4xl font-bold text-stone-900 mb-6">
               Bedankt voor uw aanvraag
             </h1>
-            <p className="text-stone-600 leading-relaxed max-w-md mx-auto mb-8">
+            <p className="text-stone-600 leading-relaxed max-w-md mx-auto mb-4">
               We hebben uw gegevens goed ontvangen. Hidden Harvest bekijkt uw processen en komt zo
               spoedig mogelijk bij u terug met een persoonlijk Seeds Report.
+            </p>
+            <p className="text-stone-500 text-sm leading-relaxed max-w-md mx-auto mb-8">
+              Het rapport wordt eerst handmatig gecontroleerd, zodat u geen standaardvoorbeeld
+              ontvangt maar een rapport dat beter aansluit op uw bedrijf.
             </p>
             <button
               type="button"
