@@ -13,6 +13,11 @@ const config: Config = {
           cream: '#F9F6F0',
         },
       },
+      fontFamily: {
+        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        display: ['var(--font-playfair)', 'Georgia', 'serif'],
+        mono: ['var(--font-jetbrains)', 'ui-monospace', 'monospace'],
+      },
     },
   },
   plugins: [],

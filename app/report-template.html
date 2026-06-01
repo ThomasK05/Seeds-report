@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seeds Report · FreshMeals BV</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=Inter:wght@300;400;600&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #2D5A3D;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    :root {
+      --forest: #2D5A3D;
+      --earth:  #8B6F47;
+      --soil:   #3D2B1F;
+      --blue:   #A8D5E5;
+      --cream:  #F9F6F0;
+      --char:   #2C2C2C;
+      --red:    #D4726A;
+      --off-white: #F4F0E8;
+    }
+
+    /* ── Chrome ─────────────────────────────────── */
+    #bar {
+      position: fixed; top: 0; left: 0;
+      height: 3px;
+      background: var(--blue);
+      z-index: 200;
+      transition: width 400ms cubic-bezier(0.4,0,0.2,1),
+                  background 400ms ease;
+      width: 0;
+    }
+
+    #counter {
+      position: fixed; top: 18px; right: 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      z-index: 200;
+      transition: color 400ms ease;
+      pointer-events: none;
+    }
+
+    #dots {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%);
+      display: flex; gap: 9px; align-items: center;
+      z-index: 200;
+    }
+    .dot {
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 260ms cubic-bezier(0.4,0,0.2,1);
+      width: 7px; height: 7px;
+    }
+    .dot.active { width: 11px; height: 11px; }
+
+    .arrow {
+      position: fixed; top: 50%; z-index: 200;
+      transform: translateY(-50%);
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none; background: none;
+      opacity: 0.35;
+      transition: opacity 200ms ease, color 400ms ease;
+    }
+    .arrow:hover { opacity: 0.85; }
+    .arrow svg { width: 22px; height: 22px; stroke-width: 1.5; fill: none; stroke: currentColor; }
+    #prev { left: 18px; }
+    #next { right: 18px; }
+
+    /* ── Slides ─────────────────────────────────── */
+    #stage {
+      position: relative;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute; top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      transform: translateX(100%);
+      transition: transform 400ms cubic-bezier(0.4,0,0.2,1);
+      will-change: transform;
+    }
+    .slide.is-active  { transform: translateX(0); }
+    .slide.is-leaving { transform: translateX(-100%); }
+    .slide.is-back    { transform: translateX(100%); }
+
+    /* ── Entrance animations ─────────────────────── */
+    .ai {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Float (cover badge) ─────────────────────── */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-11px); }
+    }
+
+    /* ══════════════════════════════════════════════
+       SLIDE 1 — COVER
+    ══════════════════════════════════════════════ */
+    .s-cover {
+      background: var(--forest);
+      color: var(--off-white);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 72px 80px 80px;
+    }
+
+    /* Botanical SVG sits behind everything */
+    .s-cover__bg {
+      position: absolute; inset: 0;
+      pointer-events: none;
+    }
+
+    .s-cover__label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(249,246,240,0.45);
+      margin-bottom: 22px;
+      position: relative;
+    }
+
+    .s-cover__company {
+      font-family: 'Playfair Display', serif;
+      font-weight: 900;
+      font-size: clamp(52px, 7.5vw, 88px);
+      line-height: 1.04;
+      color: var(--off-white);
+      margin-bottom: 14px;
+      position: relative;
+    }
+
+    .s-cover__meta {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 15px;
+      color: rgba(249,246,240,0.45);
+      letter-spacing: 0.04em;
+      margin-bottom: 60px;
+      position: relative;
+    }
+
+    .s-cover__badge {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 7px;
+      animation: float 3.6s ease-in-out infinite;
+    }
+
+    .s-cover__amount {
+      font-family: 'Playfair Display', serif;
+      font-weight: 900;
+      font-size: clamp(60px, 9vw, 108px);
+      line-height: 1;
+      color: var(--off-white);
+      letter-spacing: -0.01em;
+    }
+
+    .s-cover__amount-sub {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      font-size: 13px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(249,246,240,0.45);
+    }
+
+    .s-cover__cta {
+      position: absolute; bottom: 44px; right: 52px;
+      font-family: 'Inter', sans-serif; font-weight: 400;
+      font-size: 13px; letter-spacing: 0.03em;
+      color: rgba(249,246,240,0.55);
+      background: none; border: none; cursor: pointer;
+      transition: color 180ms ease;
+    }
+    .s-cover__cta:hover { color: var(--off-white); }
+
+    .s-cover__brand {
+      position: absolute; bottom: 44px; left: 52px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; letter-spacing: 0.1em;
+      color: rgba(249,246,240,0.28);
+    }
+
+    /* ══════════════════════════════════════════════
+       SLIDE 2 — SAMENVATTING
+    ══════════════════════════════════════════════ */
+    .s-summary {
+      background: var(--cream);
+      display: flex;
+      align-items: center;
+      padding: 0 10vw;
+    }
+
+    .s-summary__inner {
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--earth);
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .heading {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: clamp(30px, 3.8vw, 46px);
+      color: var(--forest);
+      line-height: 1.15;
+      margin-bottom: 36px;
+    }
+
+    /* Asymmetric stat row — avoids the identical-card-grid pattern */
+    .s-summary__stats {
+      display: flex;
+      align-items: baseline;
+      gap: 40px;
+      margin-bottom: 32px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid rgba(139,111,71,0.25);
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .stat__val {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      line-height: 1;
+      color: var(--forest);
+    }
+    .stat__val--lg { font-size: clamp(36px, 4.5vw, 52px); }
+    .stat__val--md { font-size: clamp(26px, 3.2vw, 36px); }
+    .stat__val--sm { font-size: clamp(22px, 2.6vw, 30px); }
+
+    .stat__label {
+      font-family: 'Inter', sans-serif;
+      font-weight: 400; font-size: 12px;
+      color: var(--earth);
+      letter-spacing: 0.04em;
+    }
+
+    .stat-divider {
+      width: 1px; height: 40px;
+      background: rgba(139,111,71,0.2);
+      align-self: center;
+    }
+
+    .s-summary__body {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300; font-size: 17px;
+      line-height: 1.78;
+      color: var(--char);
+      max-width: 640px;
+    }
+
+    /* ══════════════════════════════════════════════
+       SLIDES 3-5 — KANSEN
+    ══════════════════════════════════════════════ */
+    .s-kans {
+      background: var(--cream);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 56px 10vw 64px;
+    }
+
+    .s-kans__header {
+      margin-bottom: 28px;
+    }
+
+    .s-kans__num {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase;
+      color: var(--earth);
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .s-kans__name {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: clamp(26px, 3.5vw, 42px);
+      color: var(--soil);
+      line-height: 1.2;
+    }
+
+    .s-kans__cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 28px;
+      margin-bottom: 28px;
+    }
+
+    .kans-block {
+      background: #FFFFFF;
+      border-radius: 3px;
+      padding: 24px 28px 26px;
+    }
+
+    .kans-block__label {
+      display: flex; align-items: center; gap: 9px;
+      margin-bottom: 13px;
+    }
+
+    .kans-block__dot {
+      width: 7px; height: 7px;
+      border-radius: 1px;
+      flex-shrink: 0;
+    }
+
+    .kans-block__label-text {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase;
+    }
+
+    .kans-block__body {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300; font-size: 15px;
+      line-height: 1.72;
+      color: var(--char);
+    }
+
+    .s-kans__pills {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex; align-items: center;
+      padding: 8px 16px;
+      border-radius: 2px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; letter-spacing: 0.07em;
+      white-space: nowrap;
+    }
+    .pill--green { background: var(--forest); color: var(--off-white); }
+    .pill--blue  { background: var(--blue);   color: var(--soil); }
+
+    /* ══════════════════════════════════════════════
+       SLIDE 6 — EERSTE STAP / CTA
+    ══════════════════════════════════════════════ */
+    .s-cta {
+      background: var(--forest);
+      color: var(--off-white);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 64px 10vw 80px;
+    }
+
+    .s-cta__heading {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: clamp(32px, 5vw, 56px);
+      color: var(--off-white);
+      line-height: 1.12;
+      margin-bottom: 20px;
+    }
+
+    .s-cta__body {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300; font-size: 17px;
+      line-height: 1.74; color: rgba(249,246,240,0.72);
+      max-width: 520px;
+      margin-bottom: 40px;
+    }
+
+    .s-cta__box {
+      background: var(--cream);
+      border-radius: 4px;
+      padding: 30px 36px 32px;
+      max-width: 520px;
+    }
+
+    .s-cta__box-title {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700; font-size: 21px;
+      color: var(--forest);
+      margin-bottom: 9px;
+    }
+
+    .s-cta__box-body {
+      font-family: 'Inter', sans-serif;
+      font-weight: 300; font-size: 15px;
+      line-height: 1.68;
+      color: var(--char);
+    }
+
+    .s-cta__footer {
+      position: absolute; bottom: 44px; left: 10vw;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; letter-spacing: 0.1em;
+      color: rgba(249,246,240,0.28);
+    }
+
+    .s-cta__back {
+      position: absolute; bottom: 44px; right: 52px;
+      font-family: 'Inter', sans-serif; font-size: 13px;
+      color: rgba(249,246,240,0.42);
+      background: none; border: none; cursor: pointer;
+      transition: color 180ms ease;
+    }
+    .s-cta__back:hover { color: rgba(249,246,240,0.75); }
+  </style>
+</head>
+<body>
+
+<!-- Progress bar -->
+<div id="bar"></div>
+
+<!-- Slide counter -->
+<div id="counter">1 / 6</div>
+
+<!-- Arrows -->
+<button class="arrow" id="prev" aria-label="Vorige">
+  <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+</button>
+<button class="arrow" id="next" aria-label="Volgende">
+  <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
+
+<!-- Dots -->
+<div id="dots"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div id="stage">
+
+  <!-- ── SLIDE 1: COVER ──────────────────────── -->
+  <div class="slide s-cover is-active" data-index="0" data-theme="dark">
+
+    <!-- Botanical background -->
+    <svg class="s-cover__bg" viewBox="0 0 1440 900" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <g fill="rgba(249,246,240,0.09)">
+        <!-- Large seed top-left -->
+        <ellipse cx="110" cy="195" rx="38" ry="72" transform="rotate(-28,110,195)"/>
+        <line x1="110" y1="267" x2="168" y2="390" stroke="rgba(249,246,240,0.07)" stroke-width="1.5" fill="none"/>
+        <!-- Large seed bottom-right -->
+        <ellipse cx="1340" cy="710" rx="50" ry="88" transform="rotate(22,1340,710)"/>
+        <line x1="1340" y1="798" x2="1290" y2="895" stroke="rgba(249,246,240,0.07)" stroke-width="1.5" fill="none"/>
+        <!-- Medium seed top-right -->
+        <ellipse cx="1390" cy="145" rx="22" ry="44" transform="rotate(-42,1390,145)"/>
+        <!-- Medium seed bottom-left -->
+        <ellipse cx="85" cy="795" rx="26" ry="52" transform="rotate(18,85,795)"/>
+        <!-- Small scattered seeds -->
+        <ellipse cx="420" cy="68" rx="11" ry="22" transform="rotate(-18,420,68)"/>
+        <ellipse cx="690" cy="848" rx="13" ry="26" transform="rotate(12,690,848)"/>
+        <ellipse cx="930" cy="56" rx="9"  ry="18" transform="rotate(35,930,56)"/>
+        <ellipse cx="1130" cy="856" rx="10" ry="20" transform="rotate(-12,1130,856)"/>
+        <ellipse cx="260" cy="830" rx="8" ry="16" transform="rotate(8,260,830)"/>
+        <ellipse cx="1200" cy="80" rx="7" ry="15" transform="rotate(-25,1200,80)"/>
+      </g>
+    </svg>
+
+    <span class="s-cover__label ai" style="animation-delay:50ms">Seeds Report</span>
+    <h1 class="s-cover__company ai" style="animation-delay:130ms">FreshMeals BV</h1>
+    <p class="s-cover__meta ai" style="animation-delay:200ms">E-commerce &nbsp;&middot;&nbsp; Gegenereerd op 28 mei 2025</p>
+
+    <div class="s-cover__badge ai" style="animation-delay:320ms">
+      <span class="s-cover__amount">€42.000</span>
+      <span class="s-cover__amount-sub">geschatte besparing per jaar</span>
+    </div>
+
+    <span class="s-cover__brand ai" style="animation-delay:420ms">Hidden Harvest &middot; We find the growth hiding in your operations</span>
+    <button class="s-cover__cta ai" style="animation-delay:460ms" onclick="go(1)">Bekijk de kansen &rarr;</button>
+  </div>
+
+  <!-- ── SLIDE 2: SAMENVATTING ───────────────── -->
+  <div class="slide s-summary" data-index="1" data-theme="light">
+    <div class="s-summary__inner">
+      <span class="tag ai" style="animation-delay:40ms">Samenvatting</span>
+      <h2 class="heading ai" style="animation-delay:110ms">Wat we gevonden hebben</h2>
+
+      <div class="s-summary__stats">
+        <div class="stat ai" style="animation-delay:180ms">
+          <span class="stat__val stat__val--lg" data-count data-target="840" data-suffix=" uur/jaar">840 uur/jaar</span>
+          <span class="stat__label">vrij te spelen</span>
+        </div>
+        <div class="stat-divider ai" style="animation-delay:220ms"></div>
+        <div class="stat ai" style="animation-delay:250ms">
+          <span class="stat__val stat__val--md" data-count data-prefix="€" data-target="42000" data-suffix="/jaar">€42.000/jaar</span>
+          <span class="stat__label">personeelscapaciteit</span>
+        </div>
+        <div class="stat-divider ai" style="animation-delay:290ms"></div>
+        <div class="stat ai" style="animation-delay:310ms">
+          <span class="stat__val stat__val--sm" data-count data-target="3" data-suffix=" seeds">3 seeds</span>
+          <span class="stat__label">geïdentificeerd</span>
+        </div>
+      </div>
+
+      <p class="s-summary__body ai" style="animation-delay:380ms">
+        FreshMeals BV besteedt nu wekelijks 17,5 uur aan terugkerende administratieve processen. Door slimme automatisering kan naar schatting circa 840 uur per jaar vrijspelen — goed voor ongeveer €42.000 aan personeelscapaciteit. Dat betekent minder handmatig controleren en meer tijd voor groei.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 3: KANS 1 ─────────────────────── -->
+  <div class="slide s-kans" data-index="2" data-theme="light">
+    <div class="s-kans__header">
+      <span class="s-kans__num ai" style="animation-delay:40ms">Kans 01</span>
+      <h2 class="s-kans__name ai" style="animation-delay:110ms">Automatische Orderverwerking</h2>
+    </div>
+
+    <div class="s-kans__cols">
+      <div class="kans-block ai" style="animation-delay:180ms">
+        <div class="kans-block__label">
+          <span class="kans-block__dot" style="background:var(--red)"></span>
+          <span class="kans-block__label-text" style="color:var(--red)">Wat er nu gebeurt</span>
+        </div>
+        <p class="kans-block__body">Medewerkers verwerken dagelijks 50-80 inkomende orders handmatig vanuit e-mail en het webshop-systeem, controleren voorraad en sturen bevestigingen.</p>
+      </div>
+
+      <div class="kans-block ai" style="animation-delay:260ms">
+        <div class="kans-block__label">
+          <span class="kans-block__dot" style="background:var(--forest)"></span>
+          <span class="kans-block__label-text" style="color:var(--forest)">Hoe automatisering eruit ziet</span>
+        </div>
+        <p class="kans-block__body">Een AI-engine leest binnenkomende orders, controleert voorraad automatisch, genereert bevestigingen en escaleert alleen uitzonderingen naar een medewerker.</p>
+      </div>
+    </div>
+
+    <div class="s-kans__pills">
+      <span class="pill pill--green ai" style="animation-delay:330ms">640 uur/jaar &middot; €32.000</span>
+      <span class="pill pill--blue ai" style="animation-delay:390ms">AI als engine</span>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 4: KANS 2 ─────────────────────── -->
+  <div class="slide s-kans" data-index="3" data-theme="light">
+    <div class="s-kans__header">
+      <span class="s-kans__num ai" style="animation-delay:40ms">Kans 02</span>
+      <h2 class="s-kans__name ai" style="animation-delay:110ms">Slimme Inkoopplanning</h2>
+    </div>
+
+    <div class="s-kans__cols">
+      <div class="kans-block ai" style="animation-delay:180ms">
+        <div class="kans-block__label">
+          <span class="kans-block__dot" style="background:var(--red)"></span>
+          <span class="kans-block__label-text" style="color:var(--red)">Wat er nu gebeurt</span>
+        </div>
+        <p class="kans-block__body">Inkopers maken wekelijks handmatig een inkoopoverzicht op basis van verkoopdata, seizoenstrends en leverancierslevertijden.</p>
+      </div>
+
+      <div class="kans-block ai" style="animation-delay:260ms">
+        <div class="kans-block__label">
+          <span class="kans-block__dot" style="background:var(--forest)"></span>
+          <span class="kans-block__label-text" style="color:var(--forest)">Hoe automatisering eruit ziet</span>
+        </div>
+        <p class="kans-block__body">Een predictief model analyseert historische verkoop en seizoenspatronen en genereert automatisch inkoopadviezen met één-klik goedkeuring.</p>
+      </div>
+    </div>
+
+    <div class="s-kans__pills">
+      <span class="pill pill--green ai" style="animation-delay:330ms">128 uur/jaar &middot; €6.400</span>
+      <span class="pill pill--blue ai" style="animation-delay:390ms">AI als bouwer</span>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 5: KANS 3 ─────────────────────── -->
+  <div class="slide s-kans" data-index="4" data-theme="light">
+    <div class="s-kans__header">
+      <span class="s-kans__num ai" style="animation-delay:40ms">Kans 03</span>
+      <h2 class="s-kans__name ai" style="animation-delay:110ms">Klantenservice Copilot</h2>
+    </div>
+
+    <div class="s-kans__cols">
+      <div class="kans-block ai" style="animation-delay:180ms">
+        <div class="kans-block__label">
+          <span class="kans-block__dot" style="background:var(--red)"></span>
+          <span class="kans-block__label-text" style="color:var(--red)">Wat er nu gebeurt</span>
+        </div>
+        <p class="kans-block__body">Het team beantwoordt dagelijks 30-50 klantmails over orderstatus, retouren en productinformatie — elk handmatig opgezocht en geschreven.</p>
+      </div>
+
+      <div class="kans-block ai" style="animation-delay:260ms">
+        <div class="kans-block__label">
+          <span class="kans-block__dot" style="background:var(--forest)"></span>
+          <span class="kans-block__label-text" style="color:var(--forest)">Hoe automatisering eruit ziet</span>
+        </div>
+        <p class="kans-block__body">Een AI-engine leest inkomende mails, haalt orderstatus op uit Shopify en schrijft conceptantwoorden die een medewerker met één klik goedkeurt en verstuurt.</p>
+      </div>
+    </div>
+
+    <div class="s-kans__pills">
+      <span class="pill pill--green ai" style="animation-delay:330ms">72 uur/jaar &middot; €3.600</span>
+      <span class="pill pill--blue ai" style="animation-delay:390ms">AI als product</span>
+    </div>
+  </div>
+
+  <!-- ── SLIDE 6: EERSTE STAP ────────────────── -->
+  <div class="slide s-cta" data-index="5" data-theme="dark">
+    <span class="tag ai" style="animation-delay:40ms; color:rgba(249,246,240,0.4); margin-bottom:14px">Volgende stap</span>
+    <h2 class="s-cta__heading ai" style="animation-delay:110ms">Waar beginnen we?</h2>
+    <p class="s-cta__body ai" style="animation-delay:190ms">
+      We stellen voor om te starten met de Automatische Orderverwerking. Dit proces kost nu de meeste uren en heeft de hoogste ROI: €32.000 per jaar.
+    </p>
+
+    <div class="s-cta__box ai" style="animation-delay:290ms">
+      <p class="s-cta__box-title">Gratis Field Discovery &middot; 30 minuten</p>
+      <p class="s-cta__box-body">Hidden Harvest kijkt naar je orderflow, bepaalt welke integraties nodig zijn en schetst hoe snel een eerste werkende oplossing live kan staan.</p>
+    </div>
+
+    <span class="s-cta__footer ai" style="animation-delay:370ms">Hidden Harvest &middot; seeds@hiddenharvest.nl &middot; hiddenharvest.nl</span>
+    <button class="s-cta__back ai" style="animation-delay:410ms" onclick="go(0)">&larr; Terug naar begin</button>
+  </div>
+
+</div><!-- /stage -->
+
+<script>
+(function () {
+  'use strict';
+
+  const TOTAL   = document.querySelectorAll('.slide').length;
+  const slides  = Array.from(document.querySelectorAll('.slide'));
+  let current   = 0;
+  let locked    = false;
+
+  /* ── Build dots ──────────────────────────── */
+  const dotsEl = document.getElementById('dots');
+  slides.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'dot' + (i === 0 ? ' active' : '');
+    d.setAttribute('aria-label', 'Ga naar slide ' + (i + 1));
+    d.addEventListener('click', () => go(i));
+    dotsEl.appendChild(d);
+  });
+
+  /* ── Chrome update ───────────────────────── */
+  function updateChrome() {
+    const theme = slides[current].dataset.theme; // 'dark' | 'light'
+    const isDark = theme === 'dark';
+
+    // Colors
+    const arrowColor  = isDark ? 'rgba(249,246,240,0.8)'  : 'rgba(44,44,44,0.65)';
+    const counterColor= isDark ? 'rgba(249,246,240,0.45)' : 'rgba(44,44,44,0.35)';
+    const barColor    = isDark ? 'rgba(168,213,229,0.7)'  : '#2D5A3D';
+    const dotActive   = isDark ? 'rgba(249,246,240,0.85)' : '#2D5A3D';
+    const dotInactive = isDark ? 'rgba(249,246,240,0.25)' : 'rgba(45,90,61,0.28)';
+
+    document.getElementById('bar').style.background = barColor;
+    document.getElementById('bar').style.width = ((current + 1) / TOTAL * 100) + '%';
+    document.getElementById('counter').textContent = (current + 1) + ' / ' + TOTAL;
+    document.getElementById('counter').style.color = counterColor;
+
+    document.querySelectorAll('.arrow').forEach(a => a.style.color = arrowColor);
+    document.getElementById('prev').style.visibility = current === 0         ? 'hidden' : 'visible';
+    document.getElementById('next').style.visibility = current === TOTAL - 1 ? 'hidden' : 'visible';
+
+    document.querySelectorAll('.dot').forEach((d, i) => {
+      d.classList.toggle('active', i === current);
+      d.style.background = i === current ? dotActive : dotInactive;
+    });
+  }
+
+  /* ── Trigger entrance animations ────────── */
+  function kickAnimations(slideEl) {
+    const els = slideEl.querySelectorAll('.ai');
+    els.forEach(el => {
+      el.style.animation = 'none';
+      el.getBoundingClientRect(); // force reflow
+      el.style.animation = '';
+      el.style.animationName = 'fadeUp';
+      el.style.animationDuration = '310ms';
+      el.style.animationTimingFunction = 'cubic-bezier(0.2,0,0,1)';
+      el.style.animationFillMode = 'forwards';
+    });
+  }
+
+  /* ── Counter animation ───────────────────── */
+  function runCounters(slideEl) {
+    const els = slideEl.querySelectorAll('[data-count]');
+    els.forEach(el => {
+      const target  = parseInt(el.dataset.target, 10);
+      const prefix  = el.dataset.prefix  || '';
+      const suffix  = el.dataset.suffix  || '';
+      const dur     = 640;
+      const start   = performance.now();
+
+      const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+      const fmt = n => n >= 1000
+        ? n.toLocaleString('nl-NL')
+        : String(n);
+
+      (function tick(now) {
+        const p = Math.min((now - start) / dur, 1);
+        el.textContent = prefix + fmt(Math.round(easeOut(p) * target)) + suffix;
+        if (p < 1) requestAnimationFrame(tick);
+      })(performance.now());
+    });
+  }
+
+  /* ── Core navigation ─────────────────────── */
+  function go(next) {
+    if (next === current || locked || next < 0 || next >= TOTAL) return;
+    locked = true;
+
+    const from   = slides[current];
+    const to     = slides[next];
+    const fwd    = next > current;
+
+    // Position incoming slide off-screen
+    to.style.transition = 'none';
+    to.style.transform  = fwd ? 'translateX(100%)' : 'translateX(-100%)';
+    to.getBoundingClientRect(); // flush
+    to.style.transition = '';
+
+    // Slide out current
+    from.classList.remove('is-active');
+    from.classList.add('is-leaving');
+    if (!fwd) from.style.transform = 'translateX(100%)';
+
+    // Slide in next
+    to.classList.remove('is-leaving', 'is-back');
+    to.classList.add('is-active');
+    to.style.transform = 'translateX(0)';
+
+    current = next;
+    updateChrome();
+    kickAnimations(to);
+
+    if (next === 1) setTimeout(() => runCounters(to), 220);
+
+    setTimeout(() => {
+      from.classList.remove('is-leaving');
+      from.style.transform = '';
+      locked = false;
+    }, 420);
+  }
+
+  window.go = go; // expose for inline onclick
+
+  /* ── Arrow buttons ───────────────────────── */
+  document.getElementById('prev').addEventListener('click', () => go(current - 1));
+  document.getElementById('next').addEventListener('click', () => go(current + 1));
+
+  /* ── Keyboard ────────────────────────────── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown')  go(current + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')    go(current - 1);
+  });
+
+  /* ── Init ────────────────────────────────── */
+  // Kick entrance on slide 1
+  kickAnimations(slides[0]);
+
+  // All non-first slides start off-screen to the right
+  slides.slice(1).forEach(s => { s.style.transform = 'translateX(100%)'; });
+
+  updateChrome();
+  // Bar starts with slide 1 width
+  document.getElementById('bar').style.width = (1 / TOTAL * 100) + '%';
+
+})();
+</script>
+</body>
+</html>
