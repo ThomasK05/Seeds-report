@@ -266,7 +266,7 @@ export default function Home() {
               {currentStep === 0 && (
                 <>
                   <h2 className="font-display text-[26px] font-bold text-stone-900 leading-tight mb-1.5">
-                    Laten we beginnen
+                    Laten we beginnen!!
                   </h2>
                   <p className="text-sm text-stone-500 leading-relaxed">
                     Wie ben jij en voor welk bedrijf doe je dit?
